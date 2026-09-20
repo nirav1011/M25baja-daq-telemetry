@@ -49,8 +49,8 @@ showing position, speed, and acceleration as the car runs.
 | Component | Part | Interface | Notes |
 |---|---|---|---|
 | Microcontroller | Teensy <!-- TODO: which model? 4.0 / 4.1 / 3.2 --> | — | Sensor acquisition and framing |
-| IMU | <!-- TODO: part number --> | SPI | Orientation and acceleration |
-| GPS | <!-- TODO: part number --> | UART | Position and ground speed |
+| IMU | Adafruit 9-DOF Orientation IMU Fusion Breakout - BNO085 | SPI | Orientation and acceleration |
+| GPS | Ultimate GPS Breakout v3 | UART | Position and ground speed |
 | Companion computer | Raspberry Pi <!-- TODO: model --> | Serial from Teensy | Logging and link management |
 | Wireless link | <!-- TODO: radio/module + antenna --> | — | Car to base station |
 
