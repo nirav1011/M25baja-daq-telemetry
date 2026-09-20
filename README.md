@@ -85,12 +85,12 @@ telemetry/       Raspberry Pi — serial ingest, logging, link transmit
 docs/            Photos, block diagram, notes
 ```
 
----
+<!-- ---
 
 ## Results
 
-<!-- TODO: fill these in once you can measure them. Delete any line you can't support
-     with a real number — an empty row reads better than an invented one. -->
+TODO: fill these in once you can measure them. Delete any line you can't support
+     with a real number — an empty row reads better than an invented one.
 
 | Metric | Measured |
 |---|---|
@@ -100,7 +100,7 @@ docs/            Photos, block diagram, notes
 | Log file size per run | _TBD_ |
 
 The system ran during team testing sessions and was used to monitor vehicle position
-and speed in real time.
+and speed in real time. -->
 
 ---
 
