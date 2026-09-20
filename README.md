@@ -16,7 +16,7 @@ orientation, and acceleration during testing runs.
 ## Why this exists
 
 Before this system, there was no way to see what the chassis was actually doing 
-during a run, with only data logged after the run. This project gave the team its
+during a run, with only data logged after the fact. This project gave the team its
 first real-time telemetry: what the car was doing, while it was doing it, visible from the pit.
 
 ---
