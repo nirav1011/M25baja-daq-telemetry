@@ -51,11 +51,6 @@ showing position, speed, and acceleration as the car runs.
 | Microcontroller | ESP32 S3 | — | Sensor acquisition and framing |
 | IMU | Adafruit 9-DOF Orientation IMU Fusion Breakout - BNO085 | SPI | Orientation and acceleration |
 | GPS | Ultimate GPS Breakout v3 | UART | Position and ground speed |
-| Companion computer | Raspberry Pi <!-- TODO: model --> | Serial from ESP32 | Logging and link management |
-| Wireless link | <!-- TODO: radio/module + antenna --> | — | Car to base station |
-
-> The antenna and radio hardware are listed as TODO because I want the part numbers to
-> be accurate rather than approximate — filling these in is on my list.
 
 ---
 
