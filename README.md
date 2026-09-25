@@ -101,15 +101,6 @@ and speed in real time. -->
      README, and reviewers read it as a direct signal of engineering judgment. Two or
      three honest items beat ten generic ones. Some starting points, keep what's true: -->
 
-- **Timestamp discipline.** Sensor timestamps come from the ESP32's clock with no
-  correction against GPS time, so long runs accumulate drift against absolute time.
-  Disciplining the loop to GPS PPS would fix this cheaply.
-- **Framing robustness.** The serial protocol between ESP32 and Pi has no sequence
-  numbers or CRC, so a corrupted frame is silently accepted rather than dropped.
-- **Link characterization.** The radio link was validated by "it worked at the test
-  site" rather than by a measured range and packet-loss curve. That measurement should
-  have come before competition, not after.
-
 ---
 
 ## Attribution
