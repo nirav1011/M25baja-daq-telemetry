@@ -3,10 +3,10 @@
 # Baja SAE — Data Acquisition & Live Telemetry
 
 Sensor drivers, onboard logging, and a wireless telemetry link for UCLA's Baja SAE
-off-road race car. A ESP32 microcontroller reads an IMU over I2C and a GPS module
-over UART, streams the data to a Raspberry Pi for logging, and the Pi pushes it over
-a wireless link to a base-station dashboard — giving the team live position,
-orientation, and acceleration during testing runs.
+off-road race car. A ESP32 microcontroller reads an IMU over SPI and a GPS module
+over UART, streams the GPS data to a Raspberry Pi for logging, and the Pi pushes it over
+a wireless link to a base-station dashboard — giving the team live position and
+orientation during testing runs.
 
 <!-- TODO: drop your best hardware photo in docs/ and uncomment this line -->
 <!-- ![The DAQ stack installed in the car](docs/daq-installed.jpg) -->
@@ -25,13 +25,13 @@ first real-time telemetry: what the car was doing, while it was doing it, visibl
 
 ```mermaid
 flowchart LR
-    IMU["IMU<br/>orientation + accel"] -- I2C --> T["ESP32 MCU<br/>sensor drivers,<br/>sampling loop"]
+    IMU["IMU<br/>orientation + accel"] -- SPI --> T["ESP32 MCU<br/>sensor drivers,<br/>sampling loop"]
     GPS["GPS module<br/>position + speed"] -- UART --> T
     T -- serial --> PI["Raspberry Pi<br/>logging + packetizing"]
     PI -- wireless link --> ANT["Base station<br/>live dashboard"]
 ```
 
-**Acquisition (ESP32).** Drivers poll the IMU over I2C and parse the GPS stream over
+**Acquisition (ESP32).** Drivers poll the IMU over SPI and parse the GPS stream over
 UART, timestamp both against a common clock, and pack them into fixed-size frames sent
 over serial to the Pi.
 
@@ -49,7 +49,7 @@ showing position, speed, and acceleration as the car runs.
 | Component | Part | Interface | Notes |
 |---|---|---|---|
 | Microcontroller | ESP32 S3 | — | Sensor acquisition and framing |
-| IMU | Adafruit 9-DOF Orientation IMU Fusion Breakout - BNO085 | I2C | Orientation and acceleration |
+| IMU | Adafruit 9-DOF Orientation IMU Fusion Breakout - BNO085 | SPI | Orientation and acceleration |
 | GPS | Ultimate GPS Breakout v3 | UART | Position and ground speed |
 | Tx Transmitter Antenna | 915 MHz Sparkfun Lora Serial Antennae | - | - |
 | Rx Receiver Antenna |  902-930 MHz, 5.8 dBI gain, Fiberglass Collinear Omnidirectional Antenna | - | - |
@@ -61,19 +61,19 @@ showing position, speed, and acceleration as the car runs.
 To be precise about scope, since this was a team car:
 
 **Mine:**
-- IMU driver over I2C and GPS driver over UART on the ESP32
+- IMU driver over SPI and GPS driver over UART on the ESP32
 - Integration of both into the car's data acquisition system, including timestamping and frame format
 - Raspberry Pi side: logging, and the wireless link that streams data to the base station
 
 **The team's:** the vehicle itself, the electrical system it plugs into, and everything
-outside the DAQ and telemetry subsystem.
+outside this specific telemetry subsystem.
 
 ---
 
 ## Repository structure
 
 ```
-firmware/        ESP32 — IMU (I2C) and GPS (UART) drivers, sampling loop, framing
+firmware/        ESP32 — IMU (SPI) and GPS (UART) drivers, sampling loop, framing
 telemetry/       Raspberry Pi — serial ingest, logging, link transmit
 docs/            Photos, block diagram, notes
 ```
@@ -93,16 +93,17 @@ TODO: fill these in once you can measure them. Delete any line you can't support
 | Log file size per run | _TBD_ |
 
 The system ran during team testing sessions and was used to monitor vehicle position
-and speed in real time. -->
+and speed in real time.
 
 ---
 
 ## What I'd do differently
 
-<!-- TODO: replace these with your own — this section is the most valuable one in the
+     TODO: replace these with your own — this section is the most valuable one in the
      README, and reviewers read it as a direct signal of engineering judgment. Two or
-     three honest items beat ten generic ones. Some starting points, keep what's true: -->
+     three honest items beat ten generic ones. Some starting points, keep what's true:
 
+--> 
 ---
 
 ## Attribution
