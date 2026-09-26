@@ -51,6 +51,8 @@ showing position, speed, and acceleration as the car runs.
 | Microcontroller | ESP32 S3 | — | Sensor acquisition and framing |
 | IMU | Adafruit 9-DOF Orientation IMU Fusion Breakout - BNO085 | I2C | Orientation and acceleration |
 | GPS | Ultimate GPS Breakout v3 | UART | Position and ground speed |
+| Tx Transmitter Antenna | 915 MHz Sparkfun Lora Serial Antennae | - | - |
+| Rx Receiver Antenna |  902-930 MHz, 5.8 dBI gain, Fiberglass Collinear Omnidirectional Antenna | - | - |
 
 ---
 
