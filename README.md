@@ -1,12 +1,9 @@
-# M25baja-daq-telemetry
+# Baja SAE — IMU/GPS Drivers & Live Telemetry Receiver
 
-# Baja SAE — Data Acquisition & Live Telemetry
-
-Sensor drivers, onboard logging, and a wireless telemetry link for UCLA's Baja SAE
-off-road race car. A ESP32 microcontroller reads an IMU over SPI and a GPS module
-over UART, streams the GPS data to a Raspberry Pi for logging, and the Pi pushes it over
-a wireless link to a base-station dashboard — giving the team live position and
-orientation during testing runs.
+Sensor drivers and a base-station telemetry receiver for UCLA's Baja SAE off-road race car
+(Bruin Racing). An ESP32-S3 reads a BNO085 IMU over SPI and a GPS module over UART. On the
+base-station side, a Python receiver takes GPS packets arriving over a 915 MHz LoRa link and
+streams them to a live dashboard. That gives the team the car's position during testing runs.
 
 <!-- TODO: drop your best hardware photo in docs/ and uncomment this line -->
 <!-- ![The DAQ stack installed in the car](docs/daq-installed.jpg) -->
@@ -15,9 +12,9 @@ orientation during testing runs.
 
 ## Why this exists
 
-Before this system, there was no way to see what the chassis was actually doing 
-during a run, with only data logged after the fact. This project gave the team its
-first real-time telemetry: what the car was doing, while it was doing it, visible from the pit.
+Before this, the team could only see what the car did after a run, by pulling logs. This
+subsystem was part of the team's first real-time telemetry: where the car was and how it
+was moving, visible from the pit while it was still running.
 
 ---
 
@@ -25,22 +22,33 @@ first real-time telemetry: what the car was doing, while it was doing it, visibl
 
 ```mermaid
 flowchart LR
-    IMU["IMU<br/>orientation + accel"] -- SPI --> T["ESP32 MCU<br/>sensor drivers,<br/>sampling loop"]
-    GPS["GPS module<br/>position + speed"] -- UART --> T
-    T -- serial --> PI["Raspberry Pi<br/>logging + packetizing"]
-    PI -- wireless link --> ANT["Base station<br/>live dashboard"]
+    IMU["BNO085 IMU<br/>orientation + accel + gyro"] -- SPI --> MCU["ESP32-S3<br/>sensor drivers"]
+    GPS["Ultimate GPS v3<br/>position + speed"] -- UART --> MCU
+    MCU -- "car DAQ / logging<br/>(team)" --> TX["LoRa radio<br/>915 MHz"]
+    TX -. wireless .-> RX["LoRa radio<br/>base station"]
+    RX -- USB serial --> REC["receiver.py<br/>framing + validation"]
+    REC -- WebSocket --> DASH["Live dashboard<br/>(team)"]
 ```
 
-**Acquisition (ESP32).** Drivers poll the IMU over SPI and parse the GPS stream over
-UART, timestamp both against a common clock, and pack them into fixed-size frames sent
-over serial to the Pi.
+**IMU driver (`firmware/`).** This driver talks to the BNO085 directly over SPI and implements
+the sensor's own SHTP/SH-2 protocol, with no vendor library. It resets the sensor, turns on the
+rotation-vector, accelerometer and gyroscope reports at 100 Hz, and reads SHTP packets using
+the INT line as the "data ready" signal. It decodes the fixed-point report values and converts
+the orientation quaternion into yaw, pitch and roll. One packet can hold several reports at once,
+so the parser walks through the whole packet rather than reading only the first report.
 
-**Logging (Raspberry Pi).** The Pi writes every frame to disk for post-run analysis and
-simultaneously forwards frames to the telemetry link, so a dropped radio connection
-never costs the team its data.
+**GPS driver (`firmware/`).** A small NMEA parser. It checks each sentence's checksum, reads GGA
+(fix, satellites, position, altitude) and RMC (speed, course, UTC date and time), and doesn't care
+which satellite system a sentence comes from (`$GP`, `$GN`, …). On startup it tells the module to
+send only RMC and GGA, once per second.
 
-**Telemetry (base station).** Frames arriving at the base station feed a live dashboard
-showing position, speed, and acceleration as the car runs.
+**Base-station receiver (`telemetry/receiver.py`).** Reads 8-byte position packets from the
+base-station LoRa radio. The packet format has no start marker, so the receiver finds packet
+boundaries from the quiet gap between them. That way a byte lost over the air can't throw every
+later packet out of alignment. It rejects coordinates that are off the globe or that would mean
+the car moved faster than it physically can, and it resets its reference point if the last
+accepted fix itself turns out to be the bad one. Good packets go out as JSON over WebSocket to
+any connected dashboard.
 
 ---
 
@@ -48,11 +56,24 @@ showing position, speed, and acceleration as the car runs.
 
 | Component | Part | Interface | Notes |
 |---|---|---|---|
-| Microcontroller | ESP32 S3 | — | Sensor acquisition and framing |
-| IMU | Adafruit 9-DOF Orientation IMU Fusion Breakout - BNO085 | SPI | Orientation and acceleration |
-| GPS | Ultimate GPS Breakout v3 | UART | Position and ground speed |
-| Tx Transmitter Antenna | 915 MHz Sparkfun Lora Serial Antennae | - | - |
-| Rx Receiver Antenna |  902-930 MHz, 5.8 dBI gain, Fiberglass Collinear Omnidirectional Antenna | - | - |
+| Microcontroller | ESP32-S3 | — | Sensor acquisition |
+| IMU | Adafruit 9-DOF Orientation IMU Fusion Breakout — BNO085 | SPI (3 MHz, mode 3) | Orientation, acceleration, angular rate |
+| GPS | Adafruit Ultimate GPS Breakout v3 | UART (9600 baud) | Position, ground speed, course |
+| Telemetry radio | SparkFun LoRaSerial, 915 MHz | UART (57600 baud) | Car ↔ base station |
+| Base-station antenna | 902–930 MHz, 5.8 dBi fiberglass collinear omnidirectional | — | — |
+
+### Pin map (ESP32-S3)
+
+| Signal | GPIO | | Signal | GPIO |
+|---|---|---|---|---|
+| IMU MOSI (DI) | 42 | | IMU INT | 39 |
+| IMU MISO (SDA) | 9 | | IMU RST | 47 |
+| IMU SCK (SCL) | 10 | | GPS RX ← GPS TX | 44 |
+| IMU CS | 41 | | GPS TX → GPS RX | 43 |
+
+The BNO085 breakout has to be jumpered for SPI mode (PS0 and PS1 both high). GPIO 43/44 are
+normally UART0's console pins, so the project moves the console to the S3's native USB port
+(`sdkconfig.defaults`).
 
 ---
 
@@ -61,22 +82,50 @@ showing position, speed, and acceleration as the car runs.
 To be precise about scope, since this was a team car:
 
 **Mine:**
-- IMU driver over SPI and GPS driver over UART on the ESP32
-- Integration of both into the car's data acquisition system, including timestamping and frame format
-- Raspberry Pi side: logging, and the wireless link that streams data to the base station
+- BNO085 IMU driver over SPI, with the SHTP/SH-2 protocol written from the datasheet
+- GPS NMEA driver over UART
+- Base-station telemetry receiver (`receiver.py`): serial framing, validation, and the WebSocket feed
 
-**The team's:** the vehicle itself, the electrical system it plugs into, and everything
-outside this specific telemetry subsystem.
+**The team's:** the vehicle and its electrical system; the integrated DAQ firmware that runs on
+the car (shock-pot and brake-pressure sensors, binary logging frames); the Raspberry Pi logger that
+sends GPS over the LoRa link; the dashboard front end. The team's final car firmware switched to a
+library-based IMU driver, and this repo contains my original implementation.
 
 ---
 
 ## Repository structure
 
 ```
-firmware/        ESP32 — IMU (SPI) and GPS (UART) drivers, sampling loop, framing
-telemetry/       Raspberry Pi — serial ingest, logging, link transmit
-docs/            Photos, block diagram, notes
+firmware/                 ESP-IDF project (ESP32-S3)
+  main/main.cpp           Bring-up loop: polls both sensors, prints readings at 2 Hz
+  main/include/pins.h     Pin map
+  main/*/sensors/         IMU (SPI) and GPS (UART) drivers
+telemetry/
+  receiver.py             Base station: LoRa serial → validation → WebSocket
 ```
+
+---
+
+## Building and running
+
+**Firmware**: requires [ESP-IDF](https://docs.espressif.com/projects/esp-idf/) v5.x.
+
+```bash
+cd firmware
+idf.py set-target esp32s3
+idf.py build flash monitor
+```
+
+**Receiver**: requires Python 3.9+.
+
+```bash
+cd telemetry
+pip install -r requirements.txt
+python receiver.py --port /dev/tty.usbmodem1101
+```
+
+The dashboard connects to `ws://<base-station-ip>:8765` and gets messages like
+`{"lat": 34.0689, "lon": -118.4452, "timestamp": 1714500000000}`.
 
 <!-- ---
 
@@ -87,13 +136,10 @@ TODO: fill these in once you can measure them. Delete any line you can't support
 
 | Metric | Measured |
 |---|---|
-| Sensor update rate | _TBD_ |
+| IMU report rate | _TBD_ |
+| GPS update rate | 1 Hz |
 | Telemetry range (line of sight) | _TBD_ |
 | Packet loss at range | _TBD_ |
-| Log file size per run | _TBD_ |
-
-The system ran during team testing sessions and was used to monitor vehicle position
-and speed in real time.
 
 ---
 
@@ -101,15 +147,16 @@ and speed in real time.
 
      TODO: replace these with your own — this section is the most valuable one in the
      README, and reviewers read it as a direct signal of engineering judgment. Two or
-     three honest items beat ten generic ones. Some starting points, keep what's true:
+     three honest items beat ten generic ones.
 
---> 
+-->
+
 ---
 
 ## Attribution
 
 Built as part of Bruin Racing Baja SAE at UCLA. Published with the subsystem scope
-described above; team design files are not included.
+described above; team design files and code are not included.
 
-**Nirav Michelsen** — Electronics Hardware Project Engineer, Bruin Racing Baja SAE
+**Nirav Michelsen**, Electronics Hardware Project Engineer, Bruin Racing Baja SAE ·
 [LinkedIn](https://linkedin.com/in/nirav-michelsen)

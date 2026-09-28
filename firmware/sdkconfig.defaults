@@ -1,0 +1,5 @@
+CONFIG_IDF_TARGET="esp32s3"
+
+# Console on the native USB port. GPIO 43/44 (UART0's default pins) are
+# re-used for the GPS, so the console must not live on UART0.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y

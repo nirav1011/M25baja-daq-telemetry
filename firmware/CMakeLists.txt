@@ -1,8 +1,4 @@
-idf_component_register(
-    SRCS
-        "main.cpp"
-        "telemetry.cpp"
-        "sensors/gps_sensor.cpp"
-        "sensors/imu_sensor.cpp"
-    INCLUDE_DIRS "."
-)
+cmake_minimum_required(VERSION 3.16)
+
+include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+project(baja_daq)
