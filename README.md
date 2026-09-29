@@ -1,9 +1,10 @@
-# Baja SAE — IMU/GPS Drivers & Live Telemetry Receiver
+# Baja SAE — IMU/GPS Drivers & Live Telemetry Dashboard
 
-Sensor drivers and a base-station telemetry receiver for UCLA's Baja SAE off-road race car
+Sensor drivers and a base-station telemetry stack for UCLA's Baja SAE off-road race car
 (Bruin Racing). An ESP32-S3 reads a BNO085 IMU over SPI and a GPS module over UART. On the
 base-station side, a Python receiver takes GPS packets arriving over a 915 MHz LoRa link and
-streams them to a live dashboard. That gives the team the car's position during testing runs.
+streams them to a React speedometer dashboard. That gives the team the car's position and
+speed during testing runs.
 
 <!-- TODO: drop your best hardware photo in docs/ and uncomment this line -->
 <!-- ![The DAQ stack installed in the car](docs/daq-installed.jpg) -->
@@ -27,7 +28,7 @@ flowchart LR
     MCU -- "car DAQ / logging<br/>(team)" --> TX["LoRa radio<br/>915 MHz"]
     TX -. wireless .-> RX["LoRa radio<br/>base station"]
     RX -- USB serial --> REC["receiver.py<br/>framing + validation"]
-    REC -- WebSocket --> DASH["Live dashboard<br/>(team)"]
+    REC -- WebSocket --> DASH["app.jsx<br/>live speedometer"]
 ```
 
 **IMU driver (`firmware/`).** This driver talks to the BNO085 directly over SPI and implements
@@ -49,6 +50,14 @@ later packet out of alignment. It rejects coordinates that are off the globe or 
 the car moved faster than it physically can, and it resets its reference point if the last
 accepted fix itself turns out to be the bad one. Good packets go out as JSON over WebSocket to
 any connected dashboard.
+
+**Live dashboard (`telemetry/app.jsx`).** A React speedometer that connects to the receiver's
+WebSocket. The link only carries position, so the dashboard works out speed itself: it takes the
+haversine distance between consecutive fixes and divides by the time between them. Readings under
+0.3 m/s count as zero, so GPS jitter doesn't show a parked car as moving, and an exponential
+moving average smooths out the needle. It shows mph, km/h, m/s or knots, and keeps a log of the
+latest fixes. For testing without the car it has two more sources: the browser's own
+geolocation (e.g. walk around with a phone) and a built-in simulated drive.
 
 ---
 
@@ -85,10 +94,11 @@ To be precise about scope, since this was a team car:
 - BNO085 IMU driver over SPI, with the SHTP/SH-2 protocol written from the datasheet
 - GPS NMEA driver over UART
 - Base-station telemetry receiver (`receiver.py`): serial framing, validation, and the WebSocket feed
+- Live speedometer dashboard (`app.jsx`): speed from GPS fixes, filtering, and test/demo modes
 
 **The team's:** the vehicle and its electrical system; the integrated DAQ firmware that runs on
 the car (shock-pot and brake-pressure sensors, binary logging frames); the Raspberry Pi logger that
-sends GPS over the LoRa link; the dashboard front end. The team's final car firmware switched to a
+sends GPS over the LoRa link. The team's final car firmware switched to a
 library-based IMU driver, and this repo contains my original implementation.
 
 ---
@@ -102,6 +112,7 @@ firmware/                 ESP-IDF project (ESP32-S3)
   main/*/sensors/         IMU (SPI) and GPS (UART) drivers
 telemetry/
   receiver.py             Base station: LoRa serial → validation → WebSocket
+  app.jsx                 Live speedometer dashboard (React)
 ```
 
 ---
@@ -124,8 +135,22 @@ pip install -r requirements.txt
 python receiver.py --port /dev/tty.usbmodem1101
 ```
 
-The dashboard connects to `ws://<base-station-ip>:8765` and gets messages like
+The receiver serves `ws://<base-station-ip>:8765` and sends messages like
 `{"lat": 34.0689, "lon": -118.4452, "timestamp": 1714500000000}`.
+
+**Dashboard**: requires Node.js. `app.jsx` is a single component that goes into a stock Vite
+React app:
+
+```bash
+npm create vite@latest speedo-app -- --template react
+cd speedo-app
+npm install
+cp ../telemetry/app.jsx src/App.jsx
+npm run dev
+```
+
+Open the local URL Vite prints. Enter the receiver's WebSocket address (the default is
+`ws://localhost:8765`) and connect, or pick **Simulate** to try it without any hardware.
 
 <!-- ---
 
