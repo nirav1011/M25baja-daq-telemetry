@@ -1,7 +1,7 @@
 // # Code for local dashboard, run using
 // # npm create vite@latest speedo-app -- --template react
 // # npm install
-// # replace the app.jsx in the src file with this file
+// # replace the App.jsx in the src file with this file
 // # npm run dev
 
 
