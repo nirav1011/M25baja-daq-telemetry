@@ -28,7 +28,7 @@ flowchart LR
     MCU -- "car DAQ / logging<br/>(team)" --> TX["LoRa radio<br/>915 MHz"]
     TX -. wireless .-> RX["LoRa radio<br/>base station"]
     RX -- USB serial --> REC["receiver.py<br/>framing + validation"]
-    REC -- WebSocket --> DASH["app.jsx<br/>live speedometer"]
+    REC -- WebSocket --> DASH["App.jsx<br/>live speedometer"]
 ```
 
 **IMU driver (`firmware/`).** This driver talks to the BNO085 directly over SPI and implements
@@ -51,7 +51,7 @@ the car moved faster than it physically can, and it resets its reference point i
 accepted fix itself turns out to be the bad one. Good packets go out as JSON over WebSocket to
 any connected dashboard.
 
-**Live dashboard (`telemetry/app.jsx`).** A React speedometer that connects to the receiver's
+**Live dashboard (`telemetry/App.jsx`).** A React speedometer that connects to the receiver's
 WebSocket. The link only carries position, so the dashboard works out speed itself: it takes the
 haversine distance between consecutive fixes and divides by the time between them. Readings under
 0.3 m/s count as zero, so GPS jitter doesn't show a parked car as moving, and an exponential
@@ -94,7 +94,7 @@ To be precise about scope, since this was a team car:
 - BNO085 IMU driver over SPI, with the SHTP/SH-2 protocol written from the datasheet
 - GPS NMEA driver over UART
 - Base-station telemetry receiver (`receiver.py`): serial framing, validation, and the WebSocket feed
-- Live speedometer dashboard (`app.jsx`): speed from GPS fixes, filtering, and test/demo modes
+- Live speedometer dashboard (`App.jsx`): speed from GPS fixes, filtering, and test/demo modes
 
 **The team's:** the vehicle and its electrical system; the integrated DAQ firmware that runs on
 the car (shock-pot and brake-pressure sensors, binary logging frames); the Raspberry Pi logger that
@@ -112,7 +112,7 @@ firmware/                 ESP-IDF project (ESP32-S3)
   main/*/sensors/         IMU (SPI) and GPS (UART) drivers
 telemetry/
   receiver.py             Base station: LoRa serial → validation → WebSocket
-  app.jsx                 Live speedometer dashboard (React)
+  App.jsx                 Live speedometer dashboard (React)
 ```
 
 ---
@@ -138,14 +138,14 @@ python receiver.py --port /dev/tty.usbmodem1101
 The receiver serves `ws://<base-station-ip>:8765` and sends messages like
 `{"lat": 34.0689, "lon": -118.4452, "timestamp": 1714500000000}`.
 
-**Dashboard**: requires Node.js. `app.jsx` is a single component that goes into a stock Vite
+**Dashboard**: requires Node.js. `App.jsx` is a single component that goes into a stock Vite
 React app:
 
 ```bash
 npm create vite@latest speedo-app -- --template react
 cd speedo-app
 npm install
-cp ../telemetry/app.jsx src/App.jsx
+cp ../telemetry/App.jsx src/App.jsx
 npm run dev
 ```
 
