@@ -32,13 +32,13 @@ const ARC_START = 135; // degrees from 12 o'clock, clockwise
 const ARC_END = 405;
 const ARC_RANGE = ARC_END - ARC_START;
 
-
+// converts polar to x,y position 
 function polarToCart(cx, cy, r, angleDeg) {
  const rad = ((angleDeg - 90) * Math.PI) / 180;
  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
 }
 
-
+// 
 function describeArc(cx, cy, r, startAngle, endAngle) {
  const s = polarToCart(cx, cy, r, startAngle);
  const e = polarToCart(cx, cy, r, endAngle);
@@ -46,7 +46,7 @@ function describeArc(cx, cy, r, startAngle, endAngle) {
  return `M ${s.x} ${s.y} A ${r} ${r} 0 ${large} 1 ${e.x} ${e.y}`;
 }
 
-
+// speed between 0 and max, and turns into an angle
 function SpeedGauge({ speed, maxSpeed = MAX_SPEED_MPH, unit = "mph" }) {
  const clamped = Math.min(Math.max(speed, 0), maxSpeed);
  const ratio = clamped / maxSpeed;
@@ -57,7 +57,7 @@ function SpeedGauge({ speed, maxSpeed = MAX_SPEED_MPH, unit = "mph" }) {
  const majorTicks = 10; // 0,5,10,...,45
  const minorPerMajor = 5;
 
-
+// builds ticks, needle, color and draws everything
  const ticks = [];
  for (let i = 0; i < majorTicks; i++) {
    const val = (maxSpeed / (majorTicks - 1)) * i;
@@ -223,7 +223,7 @@ function SpeedGauge({ speed, maxSpeed = MAX_SPEED_MPH, unit = "mph" }) {
  );
 }
 
-
+// run updates 
 export default function Speedometer() {
  const [speed, setSpeed] = useState(0);
  const [status, setStatus] = useState("idle"); // idle | listening | simulating | error
@@ -248,7 +248,7 @@ export default function Speedometer() {
 
  const maxForUnit = unit === "mph" ? 45 : unit === "km/h" ? 75 : unit === "knots" ? 40 : 20;
 
-
+// actual calculation
  const processCoord = useCallback((lat, lon, timestamp) => {
    const now = timestamp || Date.now();
    if (lastCoord.current && lastTime.current) {
