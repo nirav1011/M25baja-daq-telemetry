@@ -36,7 +36,7 @@ MAX_REJECTS = 3           # after this many rejects in a row, trust the new posi
 
 clients = set()
 
-
+# adds each connections to clients list
 async def ws_handler(ws):
     clients.add(ws)
     print(f"Dashboard connected ({len(clients)} client(s))")
@@ -46,7 +46,7 @@ async def ws_handler(ws):
         clients.discard(ws)
         print(f"Dashboard disconnected ({len(clients)} client(s))")
 
-
+# broadcasts "msg" to each client
 async def broadcast(msg):
     for ws in clients.copy():
         try:
@@ -54,14 +54,14 @@ async def broadcast(msg):
         except websockets.ConnectionClosed:
             clients.discard(ws)
 
-
+# turns lat and long into speed
 def implied_speed_mph(lat1, lon1, lat2, lon2, dt):
     # Equirectangular approximation — plenty accurate over a 1 s hop
     dlat = (lat2 - lat1) * 111320
     dlon = (lon2 - lon1) * 111320 * abs(math.cos(math.radians(lat2)))
     return math.hypot(dlat, dlon) / dt * 2.23694
 
-
+#checks range/speed and then broadcasts
 async def serial_reader(port, baud):
     ser = serial.Serial(port, baud, timeout=0.1)
     print(f"Listening on {port} @ {baud}...")
