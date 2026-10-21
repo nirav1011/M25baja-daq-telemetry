@@ -32,6 +32,8 @@ Data    s_data;
 char    s_line[LINE_BUF];
 size_t  s_pos = 0;
 
+
+// make sure sensor data is valid
 bool checksum_ok(const char *line) {
   if (line[0] != '$')
     return false;
